@@ -1,5 +1,5 @@
 # Fuel_Calc
-A js webpage that calculates the cost per mile between different fuels or cars.
+A js webpage that calculates the cost per mile between different fuels (like E85/Ethanol and Gasoline) or cars.
 
 Either:
 - Enter the price per gallon of the two fuels and ensure the miles per gallon for each fuel is accurate...
