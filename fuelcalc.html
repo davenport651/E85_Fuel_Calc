@@ -2,63 +2,323 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Dav651's Fuel Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h2 { text-align: center; }
+        .input-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .hidden { display: none !important; }
+        input[type="text"], input[type="number"] {
+            padding: 5px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        /* Toggle Switch */
+        .toggle-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            vertical-align: middle;
+            margin: 0 10px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px; width: 26px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+        }
+        input:checked + .slider { background-color: #2196F3; }
+        input:focus + .slider { box-shadow: 0 0 1px #2196F3; }
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+        .slider.round { border-radius: 34px; }
+        .slider.round:before { border-radius: 50%; }
+        .mode-label {
+            font-weight: bold;
+            color: #ccc;
+            cursor: pointer;
+        }
+        .mode-label.active { color: #000; }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #45a049; }
+
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+        .result-line { margin-bottom: 10px; font-size: 1.1em; }
+        .better-deal { color: green; font-weight: bold; }
+    </style>
 </head>
-<body onload="docwrite()">
+<body onload="init()">
 
-<h2>Dav651's Fuel Calculator</h2>
+<h2>Fuel Cost Calculator</h2>
 
-<p id="output"></p>
+<div class="toggle-container">
+    <span id="mode-label-flex" class="mode-label active" onclick="setMode('flex')">Flex Fuel</span>
+    <label class="switch">
+        <input type="checkbox" id="mode-toggle" onchange="toggleMode()">
+        <span class="slider round"></span>
+    </label>
+    <span id="mode-label-compare" class="mode-label" onclick="setMode('compare')">Vehicle Compare</span>
+</div>
 
-<input type="text" name="x" id="gas"/> <span id="txt3"></span> $/gal<br>
-<input type="text" name="y" id="e85"/> <span id="txt4"></span> $/gal<br>
-<br>
-<input type="text" name="mpgg" id="mpgg" value="35"/> MPG on Gas (or Fusion)<br>
-<input type="text" name="mpge" id="mpge" value="22"/> MPG on E85 (or Edge)<br>
-<input value="Calculate" type="button" onclick="retreive();"/>
-<br>
+<div class="input-group">
+    <label>Trip Distance (miles):</label>
+    <input type="number" id="trip-distance" value="1" min="1" oninput="saveData()">
+</div>
+
+<div id="prices-container" class="input-group">
+    <div id="price-row-1">
+        <label id="price-label-1">Gasoline Price ($/gal):</label>
+        <input type="number" id="price1" step="0.01" placeholder="e.g. 3.50" oninput="saveData()">
+    </div>
+    <div id="price-row-2">
+        <label id="price-label-2">E85 Price ($/gal):</label>
+        <input type="number" id="price2" step="0.01" placeholder="e.g. 2.80" oninput="saveData()">
+    </div>
+</div>
+
+<div id="vehicles-container" class="input-group">
+    <div class="vehicle-row">
+        <div id="vehicle1-name-container" class="hidden">
+            <label>Vehicle 1 Name:</label>
+            <input type="text" id="vehicle1-name" placeholder="Vehicle 1" oninput="saveData()">
+        </div>
+        <label id="mpg-label-1">MPG on Gas:</label>
+        <input type="number" id="mpg1" value="35" step="0.1" oninput="saveData()">
+    </div>
+
+    <div class="vehicle-row">
+        <div id="vehicle2-name-container" class="hidden">
+            <label>Vehicle 2 Name:</label>
+            <input type="text" id="vehicle2-name" placeholder="Vehicle 2" oninput="saveData()">
+        </div>
+        <label id="mpg-label-2">MPG on E85:</label>
+        <input type="number" id="mpg2" value="22" step="0.1" oninput="saveData()">
+    </div>
+</div>
+
+<button onclick="calculate()">Calculate</button>
+
+<div id="output"></div>
 
 <script>
-txt1 = "Gasoline"
-txt2 = "E85"
-function docwrite() {
-	document.getElementById("txt3").innerHTML = txt1;
-	document.getElementById("txt4").innerHTML = txt2 + " (leave blank to compare cars)";
-}
-function retreive() {
-    var gas = document.getElementById("gas").value;
-    var e85 = document.getElementById("e85").value;
-	if (e85 == "") {
-		e85 = gas;
-		document.getElementById("e85").value = gas;
-		document.getElementById("txt4").innerHTML = txt1;
-		txt1 = "Fusion";
-		txt2 = "Edge";
-	}
-	if (gas !== e85) {
-		//alert("not same");
-		txt1 = "Gasoline";
-		txt2 = "E85";
-		document.getElementById("txt4").innerHTML = txt2;
-	}
-    var mpgg = document.getElementById("mpgg").value;
-    var mpge = document.getElementById("mpge").value;
-    var ppmg = (gas / mpgg).toFixed(3);
-    var ppme = (e85 / mpge).toFixed(3);
-    document.getElementById("output").innerHTML = "<big><b>$" + ppmg + "</b> per mile " + txt1 + " <br><b>$" + ppme + "</b> per mile " + txt2 + "</big>";
-    switch(true) {
-	case ppmg < ppme: 
-	  alert(txt1 + " is the better deal!");
-	  break;
-	case ppme < ppmg:
-	  alert(txt2 + " is the better deal!");
-	  break;
-	default:
-	  //alert("debug");
-	  break;
-	}
+function init() {
+    loadData();
+    updateUI();
 }
 
+function setMode(mode) {
+    var toggle = document.getElementById('mode-toggle');
+    toggle.checked = (mode === 'compare');
+    toggleMode();
+}
 
+function toggleMode() {
+    updateUI();
+    saveData();
+    document.getElementById("output").innerHTML = ""; // Clear results on mode switch
+}
+
+function updateUI() {
+    var isCompare = document.getElementById('mode-toggle').checked;
+
+    // Toggle Labels Active State
+    document.getElementById('mode-label-flex').className = isCompare ? 'mode-label' : 'mode-label active';
+    document.getElementById('mode-label-compare').className = isCompare ? 'mode-label active' : 'mode-label';
+
+    // Prices
+    if (isCompare) {
+        document.getElementById('price-label-1').innerText = "Fuel Price ($/gal):";
+        document.getElementById('price-row-2').classList.add('hidden');
+    } else {
+        document.getElementById('price-label-1').innerText = "Gasoline Price ($/gal):";
+        document.getElementById('price-row-2').classList.remove('hidden');
+        document.getElementById('price-label-2').innerText = "E85 Price ($/gal):";
+    }
+
+    // Vehicles
+    var v1Container = document.getElementById('vehicle1-name-container');
+    var v2Container = document.getElementById('vehicle2-name-container');
+    var mpgLabel1 = document.getElementById('mpg-label-1');
+    var mpgLabel2 = document.getElementById('mpg-label-2');
+
+    if (isCompare) {
+        v1Container.classList.remove('hidden');
+        v2Container.classList.remove('hidden');
+        mpgLabel1.innerText = "MPG:";
+        mpgLabel2.innerText = "MPG:";
+    } else {
+        v1Container.classList.add('hidden');
+        v2Container.classList.add('hidden');
+        mpgLabel1.innerText = "MPG on Gas:";
+        mpgLabel2.innerText = "MPG on E85:";
+    }
+}
+
+function saveData() {
+    var isCompare = document.getElementById('mode-toggle').checked;
+    localStorage.setItem('fuelCalc_mode', isCompare ? 'compare' : 'flex');
+    localStorage.setItem('fuelCalc_distance', document.getElementById('trip-distance').value);
+    localStorage.setItem('fuelCalc_price1', document.getElementById('price1').value);
+    localStorage.setItem('fuelCalc_price2', document.getElementById('price2').value);
+    localStorage.setItem('fuelCalc_mpg1', document.getElementById('mpg1').value);
+    localStorage.setItem('fuelCalc_mpg2', document.getElementById('mpg2').value);
+    localStorage.setItem('fuelCalc_vehicle1Name', document.getElementById('vehicle1-name').value);
+    localStorage.setItem('fuelCalc_vehicle2Name', document.getElementById('vehicle2-name').value);
+}
+
+function loadData() {
+    // Mode
+    if (localStorage.getItem('fuelCalc_mode')) {
+        document.getElementById('mode-toggle').checked = (localStorage.getItem('fuelCalc_mode') === 'compare');
+    }
+
+    // Trip Distance
+    if (localStorage.getItem('fuelCalc_distance')) {
+        document.getElementById('trip-distance').value = localStorage.getItem('fuelCalc_distance');
+    }
+
+    // Prices
+    if (localStorage.getItem('fuelCalc_price1')) document.getElementById('price1').value = localStorage.getItem('fuelCalc_price1');
+    if (localStorage.getItem('fuelCalc_price2')) document.getElementById('price2').value = localStorage.getItem('fuelCalc_price2');
+
+    // MPGs
+    if (localStorage.getItem('fuelCalc_mpg1')) document.getElementById('mpg1').value = localStorage.getItem('fuelCalc_mpg1');
+    if (localStorage.getItem('fuelCalc_mpg2')) document.getElementById('mpg2').value = localStorage.getItem('fuelCalc_mpg2');
+
+    // Vehicle Names
+    if (localStorage.getItem('fuelCalc_vehicle1Name')) document.getElementById('vehicle1-name').value = localStorage.getItem('fuelCalc_vehicle1Name');
+    if (localStorage.getItem('fuelCalc_vehicle2Name')) document.getElementById('vehicle2-name').value = localStorage.getItem('fuelCalc_vehicle2Name');
+}
+
+function escapeHtml(text) {
+    if (!text) return text;
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function calculate() {
+    var isCompare = document.getElementById('mode-toggle').checked;
+    var distance = parseFloat(document.getElementById('trip-distance').value);
+    if (!distance || distance <= 0) distance = 1;
+
+    var price1 = parseFloat(document.getElementById('price1').value);
+    var mpg1 = parseFloat(document.getElementById('mpg1').value);
+
+    var price2, mpg2, name1, name2;
+
+    if (isCompare) {
+        // Mode: Vehicle Compare
+        price2 = price1; // Same fuel price
+        mpg2 = parseFloat(document.getElementById('mpg2').value);
+        name1 = document.getElementById('vehicle1-name').value || "Vehicle 1";
+        name2 = document.getElementById('vehicle2-name').value || "Vehicle 2";
+    } else {
+        // Mode: Flex Fuel
+        price2 = parseFloat(document.getElementById('price2').value);
+        mpg2 = parseFloat(document.getElementById('mpg2').value);
+        name1 = "Gasoline";
+        name2 = "E85";
+    }
+
+    if (isNaN(price1) || isNaN(mpg1) || isNaN(mpg2) || (isCompare ? false : isNaN(price2))) {
+        alert("Please enter valid numbers for prices and MPG.");
+        return;
+    }
+
+    var safeName1 = escapeHtml(name1);
+    var safeName2 = escapeHtml(name2);
+
+    var costPerMile1 = price1 / mpg1;
+    var costPerMile2 = price2 / mpg2;
+    var tripCost1 = costPerMile1 * distance;
+    var tripCost2 = costPerMile2 * distance;
+
+    var diff = Math.abs(tripCost1 - tripCost2);
+    var winner = "";
+    var safeWinner = "";
+
+    if (tripCost1 < tripCost2) {
+        winner = name1;
+        safeWinner = safeName1;
+    } else if (tripCost2 < tripCost1) {
+        winner = name2;
+        safeWinner = safeName2;
+    } else {
+        winner = "Tie";
+        safeWinner = "Tie";
+    }
+
+    var output = "";
+    output += "<div class='result-line'><b>" + safeName1 + "</b>: $" + costPerMile1.toFixed(3) + "/mile | Total Trip: $" + tripCost1.toFixed(2) + "</div>";
+    output += "<div class='result-line'><b>" + safeName2 + "</b>: $" + costPerMile2.toFixed(3) + "/mile | Total Trip: $" + tripCost2.toFixed(2) + "</div>";
+
+    output += "<hr>";
+    if (winner !== "Tie") {
+        output += "<div class='result-line better-deal'>" + safeWinner + " is the better deal!</div>";
+        output += "<div>You save $" + diff.toFixed(2) + " per trip (" + distance + " miles).</div>";
+        alert(winner + " is the better deal!");
+    } else {
+        output += "<div class='result-line'>Costs are identical.</div>";
+        alert("Costs are identical.");
+    }
+
+    document.getElementById("output").innerHTML = output;
+
+    // Save data on calculate too, just in case
+    saveData();
+}
 </script>
 
 </body>
